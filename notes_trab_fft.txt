@@ -1,0 +1,18 @@
+cd /home/cthm/Documents/ECAT/CIRCUITOS_2/TRAB1_FFT
+make
+./fourier_algorithms
+
+matlab example:
+https://www.mathworks.com/help/matlab/math/fourier-transforms.html
+
+# sources:
+https://www.math.wustl.edu/~victor/mfmm/fourier/fft.c
+https://www.youtube.com/watch?v=2DwDZjAS_Zc
+https://www.youtube.com/watch?v=QmgJmh2I3Fw
+https://www.youtube.com/watch?v=h7apO7q16V0&t=1363s
+https://www.youtube.com/watch?v=lGCAlv3G8Oc
+
+
+# from a fft get amplitude, power spectrum, power spectral density:
+https://www.youtube.com/watch?v=pfjiwxhqd1M
+
