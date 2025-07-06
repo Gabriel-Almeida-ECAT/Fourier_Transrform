@@ -2,6 +2,8 @@ cd /home/cthm/Documents/ECAT/CIRCUITOS_2/TRAB1_FFT
 make
 ./fourier_algorithms
 
+source .venv/bin/activate
+
 matlab example:
 https://www.mathworks.com/help/matlab/math/fourier-transforms.html
 
