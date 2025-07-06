@@ -10,12 +10,12 @@
 #endif
 
 
-#define TRUE 	1
-#define FALSE 	0
-#define SIG_MAX_SIZE 1000000
-#define RESULTS_SHOW 4
+#define TRUE 			1
+#define FALSE 			0
+#define RESULTS_SHOW 	4
 
-
+#define q				8		/* for 2^8 samples */
+#define MAX_N_SAMPLES 	(1<<q)
 #define SIGNAL_2
 
 
@@ -51,6 +51,8 @@ void plot_results(double tim_dft, double tim_fft);
 int main(){
 	printf("\n\n=================================================");
 	printf("\n# Init Fourier Analizys");
+	printf("\n# MAX_N_SAMPLES %d", (int)MAX_N_SAMPLES);
+
 	signal_t sig, dft_rslt, fft_rslt;
 	init_sig(&sig);
 	init_sig(&dft_rslt);
@@ -129,8 +131,8 @@ int main(){
 
 
 void init_sig(signal_t* signal){
-	signal->val = calloc(SIG_MAX_SIZE, sizeof(double));
-	signal->ft_freq = calloc(SIG_MAX_SIZE, sizeof(double));
+	signal->val = calloc((int)MAX_N_SAMPLES, sizeof(double));
+	signal->ft_freq = calloc((int)MAX_N_SAMPLES, sizeof(double));
 }
 
 
@@ -144,20 +146,20 @@ void generate_signal(signal_t* signal, int noise, float sample_freq, float init_
 	float time_window = end_time - init_time;
 	float Ts = 1.0/sample_freq;
 	
-	signal->num_samples = (int)(time_window/Ts) + 1;
+	int calc_samples = (int)(time_window/Ts) + 1;
+	signal->num_samples= (calc_samples>=(int)MAX_N_SAMPLES) ? (int)MAX_N_SAMPLES : calc_samples;
+
 	signal->init_time = init_time;
 	signal->end_time = end_time;
 	signal->fs = sample_freq;
 
 	double bin_width = (double)sample_freq/(double)signal->num_samples;
 
-	printf("\n# generate_signal(): time_window: %f, sample_freq: %f, Ts: %f, bin_width: %f", 
+	printf("\n# generate_signal():\n\ttime_window: %f,\n\tsample_freq: %f,\n\tTs: %f,\n\tbin_width: %f", 
 		time_window, sample_freq, Ts, bin_width);
 	
-	assert(signal->num_samples < (double)SIG_MAX_SIZE);
-	
 	float t;
-	for(int k=0; (k<signal->num_samples && k<SIG_MAX_SIZE); k++){
+	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
 		t = k*Ts;
 
 #if defined(SIGNAL_1)
@@ -184,11 +186,12 @@ void saveSig2file(signal_t* signal, char* file_name, int rslt_sig){
 
 	fprintf(file_ptr, "sample,val,x_axis\n");
 
-	for(int k=0; (k<signal->num_samples && k<SIG_MAX_SIZE); k++){
+	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
 		fprintf(file_ptr, 
 			"%d,%lf,%lf\n",
-			rslt_sig ? signal->ft_freq[k] : (double)(signal->init_time+k*(1.0/signal->fs)), 
-			signal->val[k]
+			k,
+			signal->val[k],
+			rslt_sig ? signal->ft_freq[k] : (double)(signal->init_time+k*(1.0/signal->fs))
 		);
 	}
 
@@ -212,7 +215,7 @@ void read_sig_file(signal_t* signal, char* file_name){
 	printf("\n# read_sig_file(): Read values: ");
 	int sample;
 	double val, x_axis;
-	for(int k=0; (k<signal->num_samples && k<SIG_MAX_SIZE); k++){
+	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
 		if(fscanf(file_ptr, "%d,%lf,%lf\n",
 			&sample, &val, &x_axis) == 3){
 				signal->val[sample] = val;
@@ -239,7 +242,7 @@ void dft(signal_t* signal, signal_t* dft_rslt){
 	for(int n=0; n < N; n++){
 		
 		acm = 0.0 + 0.0*I;
-		for(int k=0; (k < (N-1) && k<SIG_MAX_SIZE); k++){
+		for(int k=0; (k < (N-1) && k<(int)MAX_N_SAMPLES); k++){
 			f_k = signal->val[k];
 			acm += f_k*cexp(-I * 2 * M_PI * n * k / (double)N);
 		}

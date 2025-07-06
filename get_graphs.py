@@ -16,7 +16,7 @@ def main():
 
 	fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8))
 
-	ax1.plot(signal['val'], signal['x_axis'], 'b-o', label='Samples', markersize=3)
+	ax1.plot(signal['x_axis'], signal['val'], 'b-o', label='Samples', markersize=3)
 	'''x_new = np.linspace(signal['sample'].min(), signal['sample'].max(), 100)
 	f_cubic = interp1d(signal['sample'], signal['val'], kind='cubic')
 	y_linear = f_cubic(x_new)
@@ -27,7 +27,7 @@ def main():
 	ax1.legend()
 	ax1.grid(True)
 
-	ax2.plot(dft['val'], dft['x_axis'], 'g-o', label='Samples', markersize=3)
+	ax2.plot(dft['x_axis'], dft['val'], 'g-o', label='Samples', markersize=3)
 	'''x_new = np.linspace(dft['sample'].min(), dft['sample'].max(), 100)
 	f_cubic = interp1d(dft['sample'], dft['val'], kind='cubic')
 	y_linear = f_cubic(x_new)
@@ -38,7 +38,7 @@ def main():
 	ax2.legend()
 	ax2.grid(True)
 
-	ax3.plot(fft['val'], fft['x_axis'], 'r-o', label='Samples', markersize=3)
+	ax3.plot(fft['x_axis'], fft['val'], 'r-o', label='Samples', markersize=3)
 	'''x_new = np.linspace(fft['sample'].min(), fft['sample'].max(), 100)
 	f_cubic = interp1d(fft['sample'], fft['val'], kind='cubic')
 	y_linear = f_cubic(x_new)
