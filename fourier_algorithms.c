@@ -22,6 +22,9 @@
 
 typedef struct{
 	int num_samples;
+	float init_time;
+	float end_time;
+	float fs;
 	double* val;
 	double* ft_freq;
 } signal_t;
@@ -140,7 +143,12 @@ void deinit_sig(signal_t* signal){
 void generate_signal(signal_t* signal, int noise, float sample_freq, float init_time, float end_time){
 	float time_window = end_time - init_time;
 	float Ts = 1.0/sample_freq;
+	
 	signal->num_samples = (int)(time_window/Ts) + 1;
+	signal->init_time = init_time;
+	signal->end_time = end_time;
+	signal->fs = sample_freq;
+
 	double bin_width = (double)sample_freq/(double)signal->num_samples;
 
 	printf("\n# generate_signal(): time_window: %f, sample_freq: %f, Ts: %f, bin_width: %f", 
@@ -174,22 +182,14 @@ void saveSig2file(signal_t* signal, char* file_name, int rslt_sig){
 		exit(1); 
 	}
 
-	fprintf(file_ptr, "sample,val\n");
+	fprintf(file_ptr, "sample,val,x_axis\n");
 
 	for(int k=0; (k<signal->num_samples && k<SIG_MAX_SIZE); k++){
-		if(rslt_sig){
-			fprintf(file_ptr, 
-				"%lf,%lf\n",
-				signal->ft_freq[k], 
-				signal->val[k]
-			);	
-		} else{
-			fprintf(file_ptr, 
-					"%d,%lf\n",
-					k, 
-					signal->val[k]
-			);
-		}
+		fprintf(file_ptr, 
+			"%d,%lf,%lf\n",
+			rslt_sig ? signal->ft_freq[k] : (double)(signal->init_time+k*(1.0/signal->fs)), 
+			signal->val[k]
+		);
 	}
 
 	fclose(file_ptr);
@@ -211,10 +211,10 @@ void read_sig_file(signal_t* signal, char* file_name){
 
 	printf("\n# read_sig_file(): Read values: ");
 	int sample;
-	double val;
+	double val, x_axis;
 	for(int k=0; (k<signal->num_samples && k<SIG_MAX_SIZE); k++){
-		if(fscanf(file_ptr, "%d,%lf\n",
-			&sample, &val) == 2){
+		if(fscanf(file_ptr, "%d,%lf,%lf\n",
+			&sample, &val, &x_axis) == 3){
 				signal->val[sample] = val;
 				if(k <= RESULTS_SHOW) printf("%lf, ", signal->val[sample]);
 		}
