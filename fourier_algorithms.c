@@ -14,9 +14,9 @@
 #define FALSE 			0
 #define RESULTS_SHOW 	4
 
-#define q				8		/* for 2^8 samples */
+#define q				6		/* for 2^8 samples */
 #define MAX_N_SAMPLES 	(1<<q)
-#define SIGNAL_2
+#define SIGNAL_3
 
 
 
@@ -25,12 +25,13 @@ typedef struct{
 	float init_time;
 	float end_time;
 	float fs;
+	double Ts;
 	double* val;
 	double* ft_freq;
 } signal_t;
 
 
-void generate_signal(signal_t* signal, int noise, float sample_freq, float init_time, float end_time);
+void generate_signal(signal_t* signal, int noise, double sample_freq, float init_time, float end_time);
 
 //fazer uma func para salvar uma tbl generia como CSV no futuro
 //double* write_tbl_csv(signal_t* signal, char* file_name);
@@ -74,6 +75,12 @@ int main(){
 					50, 		//sample freq
 					0, 			//init time
 					10.0);	//end time
+#elif defined(SIGNAL_3)
+	generate_signal(&sig,
+					0, 			//noise
+					100e6, 		//sample freq
+					0, 			//init time
+					1e-6);	//end time
 #endif
 
 	printf("\n# Generated signal with %d samples", sig.num_samples);
@@ -142,11 +149,10 @@ void deinit_sig(signal_t* signal){
 }
 
 
-void generate_signal(signal_t* signal, int noise, float sample_freq, float init_time, float end_time){
+void generate_signal(signal_t* signal, int noise, double sample_freq, float init_time, float end_time){
 	float time_window = end_time - init_time;
-	float Ts = 1.0/sample_freq;
-	
-	int calc_samples = (int)(time_window/Ts) + 1;
+	signal->Ts = (double)1.0/(double)sample_freq;
+	int calc_samples = (int)(time_window/signal->Ts) + 1;
 	signal->num_samples= (calc_samples>=(int)MAX_N_SAMPLES) ? (int)MAX_N_SAMPLES : calc_samples;
 
 	signal->init_time = init_time;
@@ -155,17 +161,19 @@ void generate_signal(signal_t* signal, int noise, float sample_freq, float init_
 
 	double bin_width = (double)sample_freq/(double)signal->num_samples;
 
-	printf("\n# generate_signal():\n\ttime_window: %f,\n\tsample_freq: %f,\n\tTs: %f,\n\tbin_width: %f", 
-		time_window, sample_freq, Ts, bin_width);
+	printf("\n# generate_signal():\n\ttime_window: %f,\n\tcalc samples: %d,\n\tsample_freq: %f,\n\tTs: %e,\n\tbin_width: %f", 
+		time_window, calc_samples, sample_freq, signal->Ts, bin_width);
 	
-	float t;
+	double t;
 	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
-		t = k*Ts;
+		t = k*signal->Ts;
 
 #if defined(SIGNAL_1)
 		signal->val[k] = 5 + 2*cos((2*M_PI)*t - (M_PI/2)) + 3*cos(4*M_PI*t);
 #elif defined(SIGNAL_2)
 		signal->val[k] = sin(2*M_PI*15*t) + sin(2*M_PI*20*t);
+#elif defined(SIGNAL_3)
+		signal->val[k] = 10*exp(- pow(t/(1/(2*5e6)), 2) )*sin(2*M_PI*5e6*t);
 #endif
 
 		if(noise) signal->val[k] += ((double)rand()/RAND_MAX)*noise;
@@ -188,10 +196,10 @@ void saveSig2file(signal_t* signal, char* file_name, int rslt_sig){
 
 	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
 		fprintf(file_ptr, 
-			"%d,%lf,%lf\n",
+			"%d,%lf,%e\n",
 			k,
 			signal->val[k],
-			rslt_sig ? signal->ft_freq[k] : (double)(signal->init_time+k*(1.0/signal->fs))
+			rslt_sig ? signal->ft_freq[k] : (double)(signal->init_time + k * signal->Ts)
 		);
 	}
 
@@ -216,10 +224,10 @@ void read_sig_file(signal_t* signal, char* file_name){
 	int sample;
 	double val, x_axis;
 	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
-		if(fscanf(file_ptr, "%d,%lf,%lf\n",
+		if(fscanf(file_ptr, "%d,%lf,%e\n",
 			&sample, &val, &x_axis) == 3){
-				signal->val[sample] = val;
-				if(k <= RESULTS_SHOW) printf("%lf, ", signal->val[sample]);
+			signal->val[sample] = val;
+			if(k <= RESULTS_SHOW) printf("%lf, ", signal->val[sample]);
 		}
 	}
 
@@ -256,9 +264,9 @@ void dft(signal_t* signal, signal_t* dft_rslt){
 
 
 /*
-=> Cooley-Tukey algorithm
-compute two sides of the absolute value (exclude phase/complex component) of a FT
-for signals with 2^n amount of samples
+=> Cooley-Tukey fft algorithm
+compute the fourier transform using the cooley-tukey akgorithm
+The number of samples *MUST* be 2^n, where n is a natural number
 */
 void fft(signal_t* signal, signal_t* fft_rslt){
 	uint16_t N = signal->num_samples;

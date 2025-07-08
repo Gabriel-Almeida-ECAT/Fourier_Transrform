@@ -14,6 +14,16 @@ def main():
 	fft = pd.read_csv('fft_result.csv')
 	fft.columns.tolist()
 
+	try:
+		time_dft = sys.argv[1]
+	except:
+		time_dft = 'N/A'
+	
+	try:
+		time_fft = sys.argv[2]
+	except:
+		time_fft = 'N/A'
+
 	fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8))
 
 	ax1.plot(signal['x_axis'], signal['val'], 'b-o', label='Samples', markersize=3)
@@ -32,7 +42,7 @@ def main():
 	f_cubic = interp1d(dft['sample'], dft['val'], kind='cubic')
 	y_linear = f_cubic(x_new)
 	ax2.plot(x_new, y_linear, 'g--', label='Linear Interpolation', alpha=0.6)'''
-	ax2.set_title(f'DFT result - {sys.argv[1]} ms')
+	ax2.set_title(f'DFT result - {time_dft} ms')
 	ax2.set_xlabel('freq [Hz]')
 	ax2.set_ylabel('mag(F[k])')
 	ax2.legend()
@@ -43,7 +53,7 @@ def main():
 	f_cubic = interp1d(fft['sample'], fft['val'], kind='cubic')
 	y_linear = f_cubic(x_new)
 	ax3.plot(x_new, y_linear, 'r--', label='Linear Interpolation', alpha=0.6)'''
-	ax3.set_title(f'FFT result - {sys.argv[2]} ms')
+	ax3.set_title(f'FFT result - {time_fft} ms - speed ratio: {float(time_dft)/float(time_fft):.3}')
 	ax3.set_xlabel('freq [Hz]')
 	ax3.set_ylabel('mag(F[k])')
 	ax3.legend()
