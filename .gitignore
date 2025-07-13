@@ -1,2 +1,4 @@
 *.csv
 .env/
+fourier_algorithms
+fourier_algorithms.exe

@@ -117,9 +117,9 @@ int main(){
 	//dft(&sig, &dft_rslt);
 	double dft_tim = time_ft(dft, &sig, &dft_rslt);
 	printf("\n# DFT result: ");
-	for(int k=0; (k<sig.num_samples && k<RESULTS_SHOW); k++) printf("%lf, ", dft_rslt.val[k]);
+	for(int k=0; (k<sig.num_samples && k<RESULTS_SHOW); k++) printf("%.3lf, ", dft_rslt.val[k]);
 	printf("\n# DFT freqs: ");
-	for(int k=0; (k<sig.num_samples && k<RESULTS_SHOW); k++) printf("%lf, ", dft_rslt.ft_freq[k]);
+	for(int k=0; (k<sig.num_samples && k<RESULTS_SHOW); k++) printf("%.3lf, ", dft_rslt.ft_freq[k]);
 
 	saveSig2file(&dft_rslt, "dft_result.csv", TRUE);
 	printf("\n# Saved DFT result to csv file");
@@ -131,9 +131,9 @@ int main(){
 	//fft(&sig, &fft_rslt);
 	double fft_tim = time_ft(fft, &sig, &fft_rslt);
 	printf("\n# FFT result: ");
-	for(int k=0; (k<sig.num_samples && k<RESULTS_SHOW); k++) printf("%lf, ", fft_rslt.val[k]);
+	for(int k=0; (k<sig.num_samples && k<RESULTS_SHOW); k++) printf("%.3lf, ", fft_rslt.val[k]);
 	printf("\n# FFT freqs: ");
-	for(int k=0; (k<sig.num_samples && k<RESULTS_SHOW); k++) printf("%lf, ", fft_rslt.ft_freq[k]);
+	for(int k=0; (k<sig.num_samples && k<RESULTS_SHOW); k++) printf("%.3lf, ", fft_rslt.ft_freq[k]);
 
 	saveSig2file(&fft_rslt, "fft_result.csv", TRUE);
 	printf("\n# Saved DFT result to csv file");
@@ -209,7 +209,7 @@ void generate_signal(signal_t* signal,
 	
 	bin_width = (double)signal->fs/(double)signal->num_samples;
 
-	printf("\n# generate_signal():\n\tsamp_opt: %d\n\ttime_window: %e,\n\tcalc samples: %ld,\n\tsample_freq: %e,\n\tTs: %e,\n\tbin_width: %e", 
+	printf("\n# generate_signal():\n\tsamp_opt: %d\n\ttime_window: %.3e,\n\tcalc samples: %ld,\n\tsample_freq: %.3e,\n\tTs: %.3e,\n\tbin_width: %.3e", 
 		samp_opt, time_window, signal->num_samples, signal->fs, signal->Ts, bin_width);
 	
 	double t;
@@ -275,7 +275,7 @@ void read_sig_file(signal_t* signal, char* file_name){
 		if(fscanf(file_ptr, "%ld,%lf,%e\n",
 			&sample, &val, &x_axis) == 3){
 			signal->val[sample] = val;
-			if(k <= RESULTS_SHOW) printf("%lf, ", signal->val[sample]);
+			if(k <= RESULTS_SHOW) printf("%.3lf, ", signal->val[sample]);
 		}
 	}
 
