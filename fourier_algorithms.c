@@ -14,14 +14,25 @@
 #define FALSE 			0
 #define RESULTS_SHOW 	4
 
-#define q				6		/* for 2^8 samples */
-#define MAX_N_SAMPLES 	(1<<q)
+#define q				6		/* for 2^16 samples */
+#define N_SAMPLES 	(1<<q)
 #define SIGNAL_3
 
+/*
+NS => Num Samples
+TW => Time Window
+FS => Sampling Frequency
+*/
+
+typedef enum sampling_opt{
+	FORCE_NS_IN_TW, // FS is variable
+	FORCE_FS_IN_TW, // Number of sample is variable
+	FORCE_NS_AND_FS // TW is variable
+} sampling_opt_t;
 
 
 typedef struct{
-	int num_samples;
+	uintmax_t num_samples;
 	float init_time;
 	float end_time;
 	float fs;
@@ -31,11 +42,16 @@ typedef struct{
 } signal_t;
 
 
-void generate_signal(signal_t* signal, int noise, double sample_freq, float init_time, float end_time);
+void generate_signal(signal_t* signal, 
+					uint16_t noise, 
+					double sample_freq, 
+					float init_time, 
+					float end_time, 
+					sampling_opt_t samp_opt);
 
 //fazer uma func para salvar uma tbl generia como CSV no futuro
 //double* write_tbl_csv(signal_t* signal, char* file_name);
-void saveSig2file(signal_t* signal, char* file_name, int rslt_sig);
+void saveSig2file(signal_t* signal, char* file_name, int is_rslt_sig);
 void read_sig_file(signal_t* signal, char* file_name);
 
 void init_sig(signal_t* signal);
@@ -43,7 +59,7 @@ void deinit_sig(signal_t* signal);
 
 void dft(signal_t* signal, signal_t* dft_rslt);
 void fft(signal_t* signal, signal_t* fft_rslt);
-static void recursive_fft(double complex *vals, int N, double complex *temp);
+static void recursive_fft(double complex *vals, uintmax_t N, double complex *temp);
 double time_ft(void (*ft_func)(signal_t* signal, signal_t* fft_rslt), signal_t* signal, signal_t* fft_rslt);
 
 void plot_results(double tim_dft, double tim_fft);
@@ -52,7 +68,7 @@ void plot_results(double tim_dft, double tim_fft);
 int main(){
 	printf("\n\n=================================================");
 	printf("\n# Init Fourier Analizys");
-	printf("\n# MAX_N_SAMPLES %d", (int)MAX_N_SAMPLES);
+	printf("\n# N_SAMPLES %ld", (uintmax_t)N_SAMPLES);
 
 	signal_t sig, dft_rslt, fft_rslt;
 	init_sig(&sig);
@@ -68,22 +84,25 @@ int main(){
 					0, 			//noise
 					4, 			//sample freq
 					0, 			//init time
-					3.0/4.0);	//end time
+					3.0/4.0,
+					FORCE_NS_IN_TW);	//end time
 #elif defined(SIGNAL_2)
 	generate_signal(&sig,
 					0, 			//noise
 					50, 		//sample freq
 					0, 			//init time
-					10.0);	//end time
+					10.0,
+					FORCE_NS_IN_TW);	//end time
 #elif defined(SIGNAL_3)
 	generate_signal(&sig,
 					0, 			//noise
 					100e6, 		//sample freq
 					0, 			//init time
-					1e-6);	//end time
+					1e-6,
+					FORCE_NS_IN_TW);	//end time
 #endif
 
-	printf("\n# Generated signal with %d samples", sig.num_samples);
+	printf("\n# Generated signal with %ld samples", sig.num_samples);
 
 	saveSig2file(&sig, "signal.csv", FALSE);
 	printf("\n# Saved signal to csv file");
@@ -138,8 +157,8 @@ int main(){
 
 
 void init_sig(signal_t* signal){
-	signal->val = calloc((int)MAX_N_SAMPLES, sizeof(double));
-	signal->ft_freq = calloc((int)MAX_N_SAMPLES, sizeof(double));
+	signal->val = calloc((uintmax_t)N_SAMPLES, sizeof(double));
+	signal->ft_freq = calloc((uintmax_t)N_SAMPLES, sizeof(double));
 }
 
 
@@ -149,24 +168,53 @@ void deinit_sig(signal_t* signal){
 }
 
 
-void generate_signal(signal_t* signal, int noise, double sample_freq, float init_time, float end_time){
-	float time_window = end_time - init_time;
-	signal->Ts = (double)1.0/(double)sample_freq;
-	int calc_samples = (int)(time_window/signal->Ts) + 1;
-	signal->num_samples= (calc_samples>=(int)MAX_N_SAMPLES) ? (int)MAX_N_SAMPLES : calc_samples;
+void generate_signal(signal_t* signal, 
+					uint16_t noise, 
+					double sample_freq, 
+					float init_time, 
+					float end_time, 
+					sampling_opt_t samp_opt){
+	
+	double time_window;
+	double bin_width;
 
 	signal->init_time = init_time;
 	signal->end_time = end_time;
-	signal->fs = sample_freq;
 
-	double bin_width = (double)sample_freq/(double)signal->num_samples;
+	switch(samp_opt){
+		case FORCE_NS_IN_TW: // FS is variable
+			signal->num_samples = N_SAMPLES;
 
-	printf("\n# generate_signal():\n\ttime_window: %f,\n\tcalc samples: %d,\n\tsample_freq: %f,\n\tTs: %e,\n\tbin_width: %f", 
-		time_window, calc_samples, sample_freq, signal->Ts, bin_width);
+			time_window = end_time - init_time;
+			signal->Ts = time_window/(double)N_SAMPLES;
+			signal->fs = 1.0/signal->Ts;
+		break;
+
+		case FORCE_FS_IN_TW: // NS is variable
+			signal->fs = sample_freq;
+
+			time_window = end_time - init_time;
+			signal->Ts = 1.0/signal->fs;
+			signal->num_samples = (uintmax_t)(time_window/signal->Ts) + 1;
+		break;
+
+		case FORCE_NS_AND_FS: // TW is variable
+			signal->fs = sample_freq;
+			signal->num_samples = N_SAMPLES;
+
+			signal->Ts = 1.0/signal->fs;
+			time_window = (signal->num_samples*signal->Ts);
+		break;
+	}
+	
+	bin_width = (double)signal->fs/(double)signal->num_samples;
+
+	printf("\n# generate_signal():\n\tsamp_opt: %d\n\ttime_window: %e,\n\tcalc samples: %ld,\n\tsample_freq: %e,\n\tTs: %e,\n\tbin_width: %e", 
+		samp_opt, time_window, signal->num_samples, signal->fs, signal->Ts, bin_width);
 	
 	double t;
-	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
-		t = k*signal->Ts;
+	for(int k=0; (k<signal->num_samples && k<(uintmax_t)N_SAMPLES); k++){
+		t = init_time + (k*signal->Ts);
 
 #if defined(SIGNAL_1)
 		signal->val[k] = 5 + 2*cos((2*M_PI)*t - (M_PI/2)) + 3*cos(4*M_PI*t);
@@ -184,7 +232,7 @@ void generate_signal(signal_t* signal, int noise, double sample_freq, float init
 }
 
 
-void saveSig2file(signal_t* signal, char* file_name, int rslt_sig){
+void saveSig2file(signal_t* signal, char* file_name, int is_rslt_sig){
 	FILE *file_ptr = fopen(file_name, "w");
 
 	if(file_ptr == NULL){ 
@@ -194,12 +242,12 @@ void saveSig2file(signal_t* signal, char* file_name, int rslt_sig){
 
 	fprintf(file_ptr, "sample,val,x_axis\n");
 
-	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
+	for(int k=0; (k<signal->num_samples && k<(uintmax_t)N_SAMPLES); k++){
 		fprintf(file_ptr, 
-			"%d,%lf,%e\n",
+			"%ld,%lf,%e\n",
 			k,
 			signal->val[k],
-			rslt_sig ? signal->ft_freq[k] : (double)(signal->init_time + k * signal->Ts)
+			is_rslt_sig ? signal->ft_freq[k] : (double)(signal->init_time + k * signal->Ts)
 		);
 	}
 
@@ -223,8 +271,8 @@ void read_sig_file(signal_t* signal, char* file_name){
 	printf("\n# read_sig_file(): Read values: ");
 	int sample;
 	double val, x_axis;
-	for(int k=0; (k<signal->num_samples && k<(int)MAX_N_SAMPLES); k++){
-		if(fscanf(file_ptr, "%d,%lf,%e\n",
+	for(int k=0; (k<signal->num_samples && k<(uintmax_t)N_SAMPLES); k++){
+		if(fscanf(file_ptr, "%ld,%lf,%e\n",
 			&sample, &val, &x_axis) == 3){
 			signal->val[sample] = val;
 			if(k <= RESULTS_SHOW) printf("%lf, ", signal->val[sample]);
@@ -238,7 +286,7 @@ void read_sig_file(signal_t* signal, char* file_name){
 
 // compute two sides of the absolute value (exclude phase/complex component) of a FT
 void dft(signal_t* signal, signal_t* dft_rslt){
-	uint16_t N = signal->num_samples;
+	uintmax_t N = signal->num_samples;
 	dft_rslt->num_samples = N;
 	for(int k = 0; k < N; k++) {
 	    dft_rslt->ft_freq[k] = signal->ft_freq[k];
@@ -250,7 +298,7 @@ void dft(signal_t* signal, signal_t* dft_rslt){
 	for(int n=0; n < N; n++){
 		
 		acm = 0.0 + 0.0*I;
-		for(int k=0; (k < (N-1) && k<(int)MAX_N_SAMPLES); k++){
+		for(int k=0; (k < (N-1) && k<(uintmax_t)N_SAMPLES); k++){
 			f_k = signal->val[k];
 			acm += f_k*cexp(-I * 2 * M_PI * n * k / (double)N);
 		}
@@ -269,7 +317,7 @@ compute the fourier transform using the cooley-tukey akgorithm
 The number of samples *MUST* be 2^n, where n is a natural number
 */
 void fft(signal_t* signal, signal_t* fft_rslt){
-	uint16_t N = signal->num_samples;
+	uintmax_t N = signal->num_samples;
 
 	if(N == 1){
 		fft_rslt->val[0] = signal->val[0];
@@ -295,7 +343,7 @@ void fft(signal_t* signal, signal_t* fft_rslt){
 }
 
 
-static void recursive_fft(double complex *vals, int N, double complex *temp){
+static void recursive_fft(double complex *vals, uintmax_t N, double complex *temp){
 	if(N <= 1) return;
 
 	double complex *even, *odd;

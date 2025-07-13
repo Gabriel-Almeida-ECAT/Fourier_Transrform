@@ -53,7 +53,10 @@ def main():
 	f_cubic = interp1d(fft['sample'], fft['val'], kind='cubic')
 	y_linear = f_cubic(x_new)
 	ax3.plot(x_new, y_linear, 'r--', label='Linear Interpolation', alpha=0.6)'''
-	ax3.set_title(f'FFT result - {time_fft} ms - speed ratio: {float(time_dft)/float(time_fft):.3}')
+	try:
+		ax3.set_title(f'FFT result - {time_fft} ms - speed ratio: {float(time_dft)/float(time_fft):.3}')
+	except:
+		ax3.set_title(f'FFT result - {time_fft} ms')
 	ax3.set_xlabel('freq [Hz]')
 	ax3.set_ylabel('mag(F[k])')
 	ax3.legend()
