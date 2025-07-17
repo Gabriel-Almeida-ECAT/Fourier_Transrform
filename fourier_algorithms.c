@@ -146,7 +146,7 @@ int main(){
 	/*=========================================
 		PLOT RESUTLS
 	===========================================*/
-	printf("\n# Plotting graphs ");
+	printf("\n\n# Plotting graphs ");
 	plot_results(dft_tim, fft_tim);
 
 
@@ -284,10 +284,10 @@ void read_sig_file(signal_t* signal, char* file_name){
 }
 
 
-// compute two sides of the absolute value (exclude phase/complex component) of a FT
 void dft(signal_t* signal, signal_t* dft_rslt){
 	uintmax_t N = signal->num_samples;
 	dft_rslt->num_samples = N;
+
 	for(int k = 0; k < N; k++) {
 	    dft_rslt->ft_freq[k] = signal->ft_freq[k];
 	}
